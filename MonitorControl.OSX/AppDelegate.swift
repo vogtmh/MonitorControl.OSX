@@ -75,7 +75,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         app = self
 
-        statusItem.title = "♨"
+        //statusItem.title = "♨"
+        let icon = NSImage(named: "statusIcon")
+        icon?.isTemplate = true // best for dark mode
+        statusItem.image = icon
         statusItem.menu = statusMenu
 
         acquirePrivileges()
@@ -114,9 +117,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 if flags == NSEventModifierFlags.option {
                     command = AUDIO_SPEAKER_VOLUME
                     slider = self.defaultVolumeSlider
-                } else if flags == NSEventModifierFlags.shift {
-                    command = BRIGHTNESS
-                    slider = self.defaultBrightnessSlider
                 } else {
                     return
                 }
@@ -174,19 +174,58 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         return slider
     }
+    
+    func addVerticalSliderItem(menu: NSMenu, isDefaultDisplay: Bool, display: Display, command: Int32, title: String, shortcut: String) -> NSSlider {
+        let item = NSMenuItem()
+        
+        let view = NSView(frame: NSRect(x: 0, y: 0, width: 40, height: 250))
+        
+        //let label = makeLabel(text: title, frame: NSRect(x: 20, y: 19, width: 130, height: 20))
+        
+        //let labelKeyCode = makeLabel(text: shortcut, frame: NSRect(x: 120, y: 19, width: 100, height: 20))
+        //labelKeyCode.isHidden = !isDefaultDisplay
+        //labelKeyCode.alignment = NSTextAlignment.right
+        
+        let handler = SliderHandler(display: display, command: command)
+        sliderHandlers.append(handler)
+        
+        let slider = NSSlider(frame: NSRect(x: 15, y: 0, width: 20, height: 250))
+        slider.target = handler
+        slider.minValue = 0
+        slider.maxValue = 100
+        slider.integerValue = prefs.integer(forKey: "\(command)-\(display.serial)")
+        slider.action = #selector(SliderHandler.valueChanged)
+        
+        //view.addSubview(label)
+        //view.addSubview(labelKeyCode)
+        view.addSubview(slider)
+        
+        item.view = view
+        
+        menu.addItem(item)
+        //menu.addItem(NSMenuItem.separator())
+        
+        return slider
+    }
 
     func updateDisplays() {
         defaultDisplay = nil
         defaultBrightnessSlider = nil
         defaultVolumeSlider = nil
 
+        /*
         for m in monitorItems {
             statusMenu.removeItem(m)
         }
+        */
+        // Removes all previous sliders to prevent multiple ones
+        statusMenu.removeAllItems()
+        // Recreates Quit Button
+        let quitMenu = NSMenuItem(title: "Q", action: "quitClicked:", keyEquivalent: "")
+        statusMenu.addItem(quitMenu)
         monitorItems = []
         displays = []
         sliderHandlers = []
-
         sleep(1)
 
         for s in NSScreen.screens()! {
@@ -208,13 +247,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let d = Display(id: id, name: name, serial: serial)
             displays.append(d)
 
-            let monitorMenuItem = NSMenuItem()
-            let monitorSubMenu = NSMenu()
-
-            let brightnessSlider = addSliderItem(menu: monitorSubMenu, isDefaultDisplay: isDefaultDisplay, display: d, command: BRIGHTNESS, title: "Brightness", shortcut: "⇧⌘- / ⇧⌘+")
-            let _ = addSliderItem(menu: monitorSubMenu, isDefaultDisplay: isDefaultDisplay, display: d, command: CONTRAST, title: "Contrast", shortcut: "")
-            let volumeSlider = addSliderItem(menu: monitorSubMenu, isDefaultDisplay: isDefaultDisplay, display: d, command: AUDIO_SPEAKER_VOLUME, title: "Volume", shortcut: "⌥⌘- / ⌥⌘+")
-
+            let volumeSlider = addVerticalSliderItem(menu: statusMenu, isDefaultDisplay: isDefaultDisplay, display: d, command: AUDIO_SPEAKER_VOLUME, title: "Volume", shortcut: "")
 
             let defaultMonitorItem = NSMenuItem()
             let defaultMonitorView = NSView(frame: NSRect(x: 0, y: 5, width: 250, height: 25))
@@ -228,29 +261,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             defaultMonitorItem.view = defaultMonitorView
 
-            monitorSubMenu.addItem(defaultMonitorItem)
-
-            monitorMenuItem.title = "\(name)"
-            monitorMenuItem.submenu = monitorSubMenu
-
-            monitorItems.append(monitorMenuItem)
-            statusMenu.insertItem(monitorMenuItem, at: displays.count - 1)
-
-            if isDefaultDisplay {
-                defaultDisplay = d
-                defaultBrightnessSlider = brightnessSlider
-                defaultVolumeSlider = volumeSlider
-            }
         }
 
-        if defaultDisplay == nil {
-            // If no DDC capable display was detected
-            let item = NSMenuItem()
-            item.title = "No supported display found"
-            item.isEnabled = false
-            monitorItems.append(item)
-            statusMenu.insertItem(item, at: 0)
-        }
     }
     
     func acquirePrivileges() {
