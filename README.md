@@ -5,7 +5,7 @@ Be aware that this has only been tested with *one* external screen. Might behave
 ![Scheme](screenshots/sliders.png)
 
 Precompiled binary, ready to use:
-[Download](application/MonitorControlOSX.dmg)
+[Download](application/ScreenVolume.dmg)
 
 Original version:
 
