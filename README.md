@@ -1,5 +1,5 @@
 # MonitorControl.OSX
-A simple menulet to control your external monitors volume over HDMI
+A simple menulet to control your external monitors volume over HDMI.
 Be aware that this has only been tested with *one* external screen. Might behave funny with multiple screens ;-) 
 
 ![Scheme](screenshots/sliders.png)
